@@ -1,2 +1,5 @@
 /.vscode
 /Homework_3/node_modules
+node_modules
+/.idea/*
+/Homework_4/node_modules

@@ -56,3 +56,4 @@ app.get('/about', updateViewCounter, (req, res) => {
 app.listen(port, () => {
 	console.log(`Сервер запущен на http://localhost:${port}`);
 });
+
