@@ -32,7 +32,7 @@ const saveUsers = async (users) => {
 
 // Схема для валидации данных при создании нового пользователя
 const createUserSchema = Joi.object({
-	name: Joi.string().required(),
+	name: Joi.string().min(3).required(),
 	email: Joi.string().email().required(),
 });
 
