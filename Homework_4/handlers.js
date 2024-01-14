@@ -1,5 +1,7 @@
 // Подключение модуля fs для работы с файлами и его промисификация
 const fs = require('fs').promises;
+const Joi = require('joi');
+const {v4: uuidv4} = require('uuid');
 
 // Функция getUsers считывает данные о пользователях из файла
 const getUsers = async () => {
@@ -28,6 +30,12 @@ const saveUsers = async (users) => {
 	}
 };
 
+// Схема для валидации данных при создании нового пользователя
+const createUserSchema = Joi.object({
+	name: Joi.string().required(),
+	email: Joi.string().email().required(),
+});
+
 // Функция getAllUsers обрабатывает GET-запрос, возвращая список всех пользователей
 const getAllUsers = async (req, res) => {
 	const users = await getUsers();
@@ -37,7 +45,7 @@ const getAllUsers = async (req, res) => {
 // Функция getUserById обрабатывает GET-запрос с указанным id, возвращая пользователя или статус 404, если не найден
 const getUserById = async (req, res) => {
 	const users = await getUsers();
-	const user = users.find((user) => user.id === parseInt(req.params.id));
+	const user = users.find((user) => user.id === req.params.id);
 
 	if (!user) {
 		res.status(404).send('User not found');
@@ -50,7 +58,16 @@ const getUserById = async (req, res) => {
 // Функция createUser обрабатывает POST-запрос, добавляя нового пользователя и возвращая его
 const createUser = async (req, res) => {
 	const users = await getUsers();
-	const newUser = req.body;
+	const newUser = {id: uuidv4(), ...req.body};
+
+	// Валидация данных перед сохранением
+	const validationResult = createUserSchema.validate(newUser);
+
+	if (validationResult.error) {
+		res.status(400).send(validationResult.error.details[0].message);
+		return;
+	}
+
 	users.push(newUser);
 	await saveUsers(users);
 	res.send(newUser);
@@ -59,7 +76,7 @@ const createUser = async (req, res) => {
 // Функция updateUser обрабатывает PUT-запрос с указанным id, обновляя данные пользователя и возвращая обновленного пользователя
 const updateUser = async (req, res) => {
 	const users = await getUsers();
-	const userId = parseInt(req.params.id);
+	const userId = req.params.id;
 	const userIndex = users.findIndex((user) => user.id === userId);
 
 	if (userIndex === -1) {
@@ -77,7 +94,7 @@ const updateUser = async (req, res) => {
 // Функция deleteUser обрабатывает DELETE-запрос с указанным id, удаляя пользователя и возвращая пустой объект
 const deleteUser = async (req, res) => {
 	const users = await getUsers();
-	const userId = parseInt(req.params.id);
+	const userId = req.params.id;
 	const userIndex = users.findIndex((user) => user.id === userId);
 
 	if (userIndex === -1) {
