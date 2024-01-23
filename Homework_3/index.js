@@ -6,21 +6,24 @@ const fs = require('fs');
 const app = express();
 const port = 3000;
 
-// Объект для хранения счетчиков просмотров
-let viewCounters = {};
+// Функция создания объекта счетчиков
+function createViewCounters() {
+	return {};
+}
 
 // Функция загрузки счетчиков из файла
 function loadViewCounters() {
 	try {
 		const data = fs.readFileSync('viewCounters.json', 'utf8');
-		viewCounters = JSON.parse(data);
+		return JSON.parse(data);
 	} catch (err) {
 		console.error('Ошибка при загрузке счетчиков:', err.message);
+		return createViewCounters();
 	}
 }
 
 // Функция сохранения счетчиков в файл
-function saveViewCounters() {
+function saveViewCounters(viewCounters) {
 	try {
 		const data = JSON.stringify(viewCounters, null, 2);
 		fs.writeFileSync('viewCounters.json', data);
@@ -30,23 +33,27 @@ function saveViewCounters() {
 }
 
 // Middleware для обновления счетчика просмотров
-function updateViewCounter(req, res, next) {
-	const path = req.path;
-	viewCounters[path] = (viewCounters[path] || 0) + 1;
-	saveViewCounters();
-	next();
+function updateViewCounter(viewCounters) {
+	return function (req, res, next) {
+		const path = req.path;
+		viewCounters[path] = (viewCounters[path] || 0) + 1;
+		saveViewCounters(viewCounters);
+		next();
+	};
 }
 
 // Загрузка счетчиков при старте сервера
-loadViewCounters();
+let viewCounters = loadViewCounters();
 
 // Обработчик для страницы "/"
-app.get('/', updateViewCounter, (req, res) => {
-	res.send(`<a href="/about">About</a> <p>Привет! Страница '/' просмотрена ${viewCounters['/']} раз.</p>`);
+app.get('/', updateViewCounter(viewCounters), (req, res) => {
+	res.send(
+		`<a href="/about">About</a> <p>Привет! Страница '/' просмотрена ${viewCounters['/']} раз.</p>`
+	);
 });
 
 // Обработчик для страницы "/about"
-app.get('/about', updateViewCounter, (req, res) => {
+app.get('/about', updateViewCounter(viewCounters), (req, res) => {
 	res.send(
 		`<a href="/">Home</a> <p>Страница '/about' просмотрена ${viewCounters['/about']} раз.</p>`
 	);
@@ -56,4 +63,3 @@ app.get('/about', updateViewCounter, (req, res) => {
 app.listen(port, () => {
 	console.log(`Сервер запущен на http://localhost:${port}`);
 });
-
